@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GPT-4o 聊天</title>
+    <style>
+        :root {
+            --sidebar-width: 280px;
+            --primary-blue: #7BB5FF;
+            --primary-pink: #FFB5E8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+        }
+
+        /* 左侧历史对话栏 */
+        .sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: white;
+            border-right: 1px solid #e0e3e7;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .new-chat-btn {
+            padding: 15px;
+            margin: 15px;
+            background-color: var(--primary-blue);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .history-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .history-item:hover {
+            background-color: #e9ecef;
+        }
+
+        /* 主聊天区域 */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            min-width: 0; /* 防止flex子项溢出 */
+        }
+
+        /* 使用统计 */
+        .usage-stats {
+            padding: 15px 20px;
+            background-color: white;
+            border-bottom: 1px solid #e0e3e7;
+            flex-shrink: 0;
+        }
+
+        /* 聊天消息区域 */
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+
+        .message {
+            margin: 10px 0;
+            padding: 12px 18px;
+            border-radius: 15px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .user-message {
+            background-color: var(--primary-blue);
+            color: white;
+            margin-left: auto;
+            border-radius: 15px 15px 0 15px;
+        }
+
+        .bot-message {
+            background-color: var(--primary-pink);
+            margin-right: auto;
+            border-radius: 15px 15px 15px 0;
+        }
+
+        /* 输入区域 */
+        .input-area {
+            padding: 15px 20px;
+            background-color: white;
+            border-top: 1px solid #e0e3e7;
+            flex-shrink: 0;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #e0e3e7;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+
+        .send-button {
+            padding: 12px 24px;
+            background-color: var(--primary-blue);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 左侧历史对话栏 -->
+    <div class="sidebar">
+        <button class="new-chat-btn" onclick="createNewTag()">+ 新对话</button>
+        <div class="history-list" id="tags-list">
+            {% for tag in tags %}
+            <div class="history-item" onclick="switchTag({{ tag[0] }})" data-tag-id="{{ tag[0] }}">
+                <span>{{ tag[1] }}</span>
+                <button onclick="deleteTag({{ tag[0] }}, event)" 
+                        style="float: right; background: none; border: none; cursor: pointer;">×</button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 主聊天区域 -->
+    <div class="main-content">
+        <!-- 使用统计 -->
+        <div class="usage-stats" id="usage-stats">
+            本次对话使用：<span id="current-tokens">0</span> tokens (费用：<span id="current-cost">$0.00</span>)<br>
+            总计使用：<span id="total-tokens">0</span> tokens (总费用：<span id="total-cost">$0.00</span>)
+        </div>
+
+        <!-- 聊天消息区域 -->
+        <div class="chat-container" id="chat-container"></div>
+
+        <!-- 输入区域 -->
+        <div class="input-area">
+            <div class="input-container">
+                <input type="text" class="message-input" id="message-input" 
+                       placeholder="输入您的消息...">
+                <button class="send-button" onclick="sendMessage()">发送</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTagId = null;
+
+        function addMessage(message, isUser) {
+            const chatContainer = document.getElementById('chat-container');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+            messageDiv.textContent = message;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        async function createNewTag() {
+            const response = await fetch('/create_tag', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({})
+            });
+            const data = await response.json();
+            location.reload();
+        }
+
+        async function switchTag(tagId) {
+            currentTagId = tagId;
+            document.querySelectorAll('.tag').forEach(tag => {
+                tag.classList.remove('active');
+            });
+            document.querySelector(`[data-tag-id="${tagId}"]`).classList.add('active');
+            
+            // 清空聊天容器
+            document.getElementById('chat-container').innerHTML = '';
+            
+            // 加载历史记录
+            const response = await fetch(`/get_history/${tagId}`);
+            const data = await response.json();
+            data.history.forEach(msg => {
+                addMessage(msg.content, msg.role === 'user');
+            });
+        }
+
+        async function deleteTag(tagId, event) {
+            event.stopPropagation();
+            if (confirm('确定要删除这个对话吗？')) {
+                await fetch(`/delete_tag/${tagId}`, {method: 'POST'});
+                location.reload();
+            }
+        }
+
+        async function sendMessage() {
+            if (!currentTagId) {
+                alert('请先选择或创建一个对话！');
+                return;
+            }
+            const input = document.getElementById('message-input');
+            const message = input.value.trim();
+            
+            if (message) {
+                addMessage(message, true);
+                input.value = '';
+
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        message: message,
+                        tag_id: currentTagId
+                    })
+                });
+                const data = await response.json();
+                
+                if (data.error) {
+                    addMessage('错误: ' + data.error, false);
+                } else {
+                    addMessage(data.reply, false);
+                    document.getElementById('current-tokens').textContent = data.tokens_used;
+                    document.getElementById('current-cost').textContent = data.cost;
+                    document.getElementById('total-tokens').textContent = data.total_tokens;
+                    document.getElementById('total-cost').textContent = data.total_cost;
+                }
+            }
+        }
+
+        // 添加回车键发送功能
+        document.getElementById('message-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        function clearHistory() {
+            fetch('/clear', {
+                method: 'POST',
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('chat-container').innerHTML = '';
+                // 重置使用统计
+                document.getElementById('current-tokens').textContent = '0';
+                document.getElementById('current-cost').textContent = '$0.00';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        // 页面加载时自动选择第一个标签
+        window.onload = function() {
+            const firstTag = document.querySelector('.tag');
+            if (firstTag) {
+                switchTag(firstTag.dataset.tagId);
+            }
+        }
+    </script>
+</body>
+</html> 
