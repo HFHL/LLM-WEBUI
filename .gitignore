@@ -42,4 +42,4 @@ env/
 .vscode/
 *.swp
 *.swo
-.DS_Store 
+.DS_Store static/css/output.css

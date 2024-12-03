@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, jsonify
 from openai import OpenAI
 import database as db
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 
 # 配置OpenAI客户端
 client = OpenAI(
