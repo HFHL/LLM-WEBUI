@@ -1,6 +1,26 @@
 import sqlite3
 from datetime import datetime
 
+def migrate_db():
+    conn = sqlite3.connect('chat_history.db')
+    c = conn.cursor()
+    
+    # 检查 tokens_used 列是否存在
+    c.execute("PRAGMA table_info(conversation_tags)")
+    columns = [column[1] for column in c.fetchall()]
+    
+    # 如果需要，添加新的列
+    if 'tokens_used' not in columns:
+        c.execute('''ALTER TABLE conversation_tags 
+                     ADD COLUMN tokens_used INTEGER DEFAULT 0''')
+    
+    if 'cost' not in columns:
+        c.execute('''ALTER TABLE conversation_tags 
+                     ADD COLUMN cost REAL DEFAULT 0.0''')
+    
+    conn.commit()
+    conn.close()
+
 def init_db():
     conn = sqlite3.connect('chat_history.db')
     c = conn.cursor()
@@ -10,7 +30,9 @@ def init_db():
         CREATE TABLE IF NOT EXISTS conversation_tags (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            tokens_used INTEGER DEFAULT 0,
+            cost REAL DEFAULT 0.0
         )
     ''')
     
@@ -26,8 +48,17 @@ def init_db():
         )
     ''')
     
+    # 添加设置表
+    c.execute('''CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT
+    )''')
+    
     conn.commit()
     conn.close()
+    
+    # 运行数据库迁移
+    migrate_db()
 
 def create_tag(name):
     conn = sqlite3.connect('chat_history.db')
@@ -69,4 +100,52 @@ def delete_tag(tag_id):
     c.execute('DELETE FROM messages WHERE tag_id = ?', (tag_id,))
     c.execute('DELETE FROM conversation_tags WHERE id = ?', (tag_id,))
     conn.commit()
-    conn.close() 
+    conn.close()
+
+def update_tag_usage(tag_id, tokens, cost):
+    conn = sqlite3.connect('chat_history.db')
+    c = conn.cursor()
+    c.execute('''UPDATE conversation_tags 
+                 SET tokens_used = tokens_used + ?,
+                     cost = cost + ?
+                 WHERE id = ?''', (tokens, cost, tag_id))
+    conn.commit()
+    conn.close()
+
+def get_tag_usage(tag_id):
+    conn = sqlite3.connect('chat_history.db')
+    c = conn.cursor()
+    c.execute('''SELECT tokens_used, cost FROM conversation_tags WHERE id = ?''', (tag_id,))
+    result = c.fetchone()
+    conn.close()
+    return {
+        'tokens': result[0] if result else 0,
+        'cost': result[1] if result else 0.0
+    }
+
+def get_total_usage():
+    conn = sqlite3.connect('chat_history.db')
+    c = conn.cursor()
+    c.execute('''SELECT SUM(tokens_used), SUM(cost) FROM conversation_tags''')
+    result = c.fetchone()
+    conn.close()
+    return {
+        'tokens': result[0] if result[0] else 0,
+        'cost': result[1] if result[1] else 0.0
+    }
+
+def update_api_key(api_key):
+    conn = sqlite3.connect('chat_history.db')
+    c = conn.cursor()
+    c.execute('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
+              ('api_key', api_key))
+    conn.commit()
+    conn.close()
+
+def get_api_key():
+    conn = sqlite3.connect('chat_history.db')
+    c = conn.cursor()
+    c.execute('SELECT value FROM settings WHERE key = ?', ('api_key',))
+    result = c.fetchone()
+    conn.close()
+    return result[0] if result else None 

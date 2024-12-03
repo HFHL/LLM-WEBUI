@@ -1,18 +1,13 @@
 from flask import Flask, render_template, request, jsonify
 from openai import OpenAI
 import database as db
+import yaml
 
 app = Flask(__name__, static_folder='static')
 
-# 配置OpenAI客户端
-client = OpenAI(
-    api_key="sk-5aR4NN53msPzKfSF1995F0D3673841F3A3Bf4131110375Bd",
-    base_url="https://az.gptplus5.com/v1"  # 请替换为实际的base URL
-)
-
-# 用于跟踪总使用量
-total_tokens = 0
-total_cost = 0
+# 读取配置文件
+with open('config.yaml', 'r') as file:
+    config = yaml.safe_load(file)
 
 # 初始化数据库
 db.init_db()
@@ -20,25 +15,38 @@ db.init_db()
 @app.route('/')
 def home():
     tags = db.get_all_tags()
-    return render_template('chat.html', tags=tags)
+    models = config.get('models', {})
+    api_key = db.get_api_key()  # 新增：获取API key
+    return render_template('chat.html', tags=tags, models=models, api_key=api_key)
 
-@app.route('/create_tag', methods=['POST'])
-def create_tag():
-    name = request.json.get('name', f'对话 {len(db.get_all_tags()) + 1}')
-    tag_id = db.create_tag(name)
-    return jsonify({"tag_id": tag_id, "name": name})
-
-@app.route('/get_history/<int:tag_id>')
-def get_history(tag_id):
-    history = db.get_conversation_history(tag_id)
-    return jsonify({"history": history})
+@app.route('/update_api_key', methods=['POST'])
+def update_api_key():
+    api_key = request.json.get('api_key')
+    db.update_api_key(api_key)  # 新增：更新API key
+    return jsonify({"status": "success"})
 
 @app.route('/chat', methods=['POST'])
 def chat():
-    global total_tokens, total_cost
     try:
         message = request.json.get('message', '')
         tag_id = request.json.get('tag_id')
+        model_key = request.json.get('model', 'gpt4o')
+        
+        # 获取模型配置
+        model_config = config['models'].get(model_key, config['models']['gpt4o'])
+        
+        # 打印模型信息
+        print(f"\nSelected Model: {model_config['name']}")
+        print(f"Base URL: {model_config['base_url']}\n")
+        
+        # 使用当前的API key
+        api_key = db.get_api_key()
+        
+        # 配置OpenAI客户端
+        client = OpenAI(
+            api_key=api_key,
+            base_url=model_config['base_url']
+        )
         
         # 获取历史记录
         conversation_history = db.get_conversation_history(tag_id)
@@ -49,7 +57,7 @@ def chat():
         
         # 调用OpenAI API
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model=model_key,
             messages=conversation_history
         )
         
@@ -57,18 +65,20 @@ def chat():
         assistant_message = response.choices[0].message.content
         db.add_message(tag_id, "assistant", assistant_message)
         
-        # 计算token使用情况
+        # 计算并更新该对话的token使用情况
         tokens_used = response.usage.total_tokens
-        total_tokens += tokens_used
         cost = (tokens_used / 1000) * 0.03
-        total_cost += cost
+        db.update_tag_usage(tag_id, tokens_used, cost)  # 新增：更新特定对话的使用统计
+        
+        # 获取总使用量
+        total_usage = db.get_total_usage()  # 新增：获取所有对话的总使用量
         
         return jsonify({
             "reply": assistant_message,
             "tokens_used": tokens_used,
-            "total_tokens": total_tokens,
             "cost": f"${cost:.4f}",
-            "total_cost": f"${total_cost:.4f}"
+            "total_tokens": total_usage['tokens'],
+            "total_cost": f"${total_usage['cost']:.4f}"
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500

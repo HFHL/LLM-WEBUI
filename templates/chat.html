@@ -3,6 +3,7 @@
 <head>
     <title>AI Chat Assistant</title>
     <link href="{{ url_for('static', filename='css/output.css') }}" rel="stylesheet">
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body class="bg-gray-50">
     <div class="h-screen flex">
@@ -61,25 +62,65 @@
             </div>
         </div>
 
-        <!-- 主聊天区域 -->
+        <!-- 主聊区域 -->
         <div class="flex-1 flex flex-col bg-gray-50">
             <!-- 顶部统计栏 -->
             <div class="bg-white p-4 shadow-sm">
                 <div class="max-w-3xl mx-auto flex items-center justify-between">
-                    <div class="flex items-center gap-6">
+                    <div class="flex items-center gap-4">
+                        <!-- 模型选择下拉框 -->
+                        <select id="model-select" 
+                                class="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            {% for model_key, model in models.items() %}
+                            <option value="{{ model_key }}">{{ model.name }}</option>
+                            {% endfor %}
+                        </select>
+                        
                         <div class="flex items-center gap-2">
                             <div class="w-2 h-2 rounded-full bg-green-500"></div>
                             <span class="text-sm text-gray-600">在线</span>
                         </div>
-                        <div class="text-sm text-gray-600">
-                            本次对话：<span id="current-tokens" class="text-blue-600 font-medium">0</span> tokens
-                        </div>
-                        <div class="text-sm text-gray-600">
-                            总计使用：<span id="total-tokens" class="text-blue-600 font-medium">0</span> tokens
-                        </div>
                     </div>
-                    <div class="text-sm text-gray-600">
-                        费用：<span id="total-cost" class="text-blue-600 font-medium">$0.00</span>
+
+                    <!-- 设置按钮 -->
+                    <div class="relative" x-data="{ settingsOpen: false }">
+                        <button @click="settingsOpen = !settingsOpen"
+                                class="p-2 hover:bg-gray-100 rounded-lg transition-colors duration-200">
+                            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                      d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                        </button>
+
+                        <!-- 设置下拉菜单 -->
+                        <div x-show="settingsOpen"
+                             @click.away="settingsOpen = false"
+                             x-transition:enter="transition ease-out duration-200"
+                             x-transition:enter-start="opacity-0 transform scale-95"
+                             x-transition:enter-end="opacity-100 transform scale-100"
+                             x-transition:leave="transition ease-in duration-100"
+                             x-transition:leave-start="opacity-100 transform scale-100"
+                             x-transition:leave-end="opacity-0 transform scale-95"
+                             class="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-lg py-2 z-50">
+                            <div class="px-4 py-2 border-b">
+                                <div class="text-sm font-medium text-gray-700">设置</div>
+                            </div>
+                            <div class="px-4 py-3 space-y-4">
+                                <div>
+                                    <label class="text-sm text-gray-600 block mb-2">API Key</label>
+                                    <input type="password" 
+                                           id="api-key-input"
+                                           value="{{ api_key or '' }}"
+                                           class="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                           placeholder="输入 API Key">
+                                </div>
+                                <button onclick="updateApiKey()"
+                                        class="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                                    保存设置
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -100,6 +141,7 @@
                                class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 
                                       focus:ring focus:ring-blue-200 transition-all duration-200 
                                       placeholder-gray-400 text-gray-700">
+                        
                         <button onclick="sendMessage()"
                                 class="absolute right-4 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 
                                        text-white rounded-lg hover:shadow-lg transition-all duration-300">
@@ -126,7 +168,12 @@
                 : 'bg-white shadow-sm text-gray-700 rounded-tl-none'
             } transform transition-all duration-300 hover:scale-[1.02]`;
             
-            innerDiv.textContent = message;
+            if (message.startsWith('<img')) {
+                innerDiv.innerHTML = message;
+            } else {
+                innerDiv.textContent = message;
+            }
+            
             messageDiv.appendChild(innerDiv);
             chatContainer.appendChild(messageDiv);
             chatContainer.parentElement.scrollTop = chatContainer.parentElement.scrollHeight;
@@ -214,6 +261,21 @@
             location.reload();
         }
 
+        async function updateApiKey() {
+            const apiKey = document.getElementById('api-key-input').value;
+            const response = await fetch('/update_api_key', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ api_key: apiKey })
+            });
+            
+            if (response.ok) {
+                alert('API Key 已更新');
+            } else {
+                alert('更新失败');
+            }
+        }
+
         async function sendMessage() {
             const input = document.getElementById('message-input');
             const message = input.value.trim();
@@ -232,26 +294,45 @@
                     // 添加新对话到历史列表
                     const historyList = document.getElementById('tags-list');
                     const newItem = document.createElement('div');
-                    newItem.className = 'history-item';
                     newItem.setAttribute('data-tag-id', data.tag_id);
                     newItem.setAttribute('onclick', `switchTag(${data.tag_id})`);
+                    newItem.className = 'group flex items-center justify-between p-3 my-2 rounded-xl hover:bg-gray-50 transition-all duration-200 cursor-pointer';
+                    
                     newItem.innerHTML = `
-                        <span>${data.name}</span>
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center text-blue-600">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                          d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-4l-4 4z"></path>
+                                </svg>
+                            </div>
+                            <span class="text-gray-700">${data.name}</span>
+                        </div>
                         <button onclick="deleteTag(${data.tag_id}, event)" 
-                                style="float: right; background: none; border: none; cursor: pointer;">×</button>
+                                class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-gray-400 hover:text-red-500">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                        </button>
                     `;
-                    historyList.appendChild(newItem);
+                    
+                    historyList.insertBefore(newItem, historyList.firstChild);
                 }
 
                 addMessage(message, true);
                 input.value = '';
 
+                const modelSelect = document.getElementById('model-select');
+                const selectedModel = modelSelect.value;
+                
                 const response = await fetch('/chat', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
                         message: message,
-                        tag_id: currentTagId
+                        tag_id: currentTagId,
+                        model: selectedModel
                     })
                 });
                 const data = await response.json();
