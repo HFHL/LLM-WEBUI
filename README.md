@@ -1,59 +1,48 @@
-# 🤖 AI Chat Assistant
+# LLM-WEBUI
 
-一个颜值与才华并存的 AI 聊天助手！用 Flask 和 Tailwind CSS 精心打造，支持多模型切换、会话管理，还能帮你算花了多少钱~ 
+一个简洁的大语言模型 Web 界面，支持多种模型和实时对话。
 
-## ✨ 闪光点
+## 新增功能
 
-### 颜值担当 🎨
-- 高颜值现代界面
-- 舒适的渐变配色
-- 丝滑的动画效果
+### 流式响应
+- 实现打字机效果，实时显示 AI 回复
+- 使用 Server-Sent Events (SSE) 进行实时通信
+- 支持长对话，自动保留最近 15 轮对话历史
 
-### 会说话 💬
+### 对话管理
 - 支持多个独立对话
-- 历史消息不丢失
-- 随心切换会话
+- 自动保存对话历史
+- 实时统计 token 使用量和成本
 
-### 会变身 🦸‍♂️
-- GPT-4、GPT-3.5 随你选
-- 一键切换不同模型
-- 自定义模型配置
+### 用户体验优化
+- 实时显示对话内容
+- 支持多种模型切换
+- 优雅的错误处理
+- 响应式设计
 
-### 会算账 🧮
-- Token 用量实时统计
-- 精确费用计算
-- 再也不怕超预算
+## 技术栈
 
-## 🛠️ 技术栈
+- 后端：Flask + SQLite
+- 前端：TailwindCSS + AlpineJS
+- API：OpenAI 兼容接口
 
-- **后端**: Flask + SQLite + OpenAI API
-- **前端**: Tailwind CSS + Alpine.js + JavaScript
-- **部署**: 随便选个服务器都能跑~
+## 使用方法
 
-## 🚀 快速开始
-
-1. 克隆代码
-
-```bash
-git clone [repo-url]
-cd ai-chat
-```
-
-2. 安装依赖
+1. 安装依赖：
 
 ```bash
 pip install -r requirements.txt
 npm install
 ```
 
-3. 启动项目
+2. 启动项目
 
 ```bash
 npm run build-css  # 构建样式
 python app.py      # 启动服务
 ```
 
-4. 开始聊天！
+3. 开始聊天！
 
 ## 🎯 开发相关
 
