@@ -6,7 +6,14 @@ module.exports = {
       colors: {
         'primary-blue': 'var(--primary-blue)',
         'primary-pink': 'var(--primary-pink)',
-      }
+      },
+      typography: {
+        DEFAULT: {
+          css: {
+            maxWidth: 'none',
+          },
+        },
+      },
     },
   },
   plugins: [],

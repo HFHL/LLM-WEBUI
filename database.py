@@ -85,14 +85,28 @@ def add_message(tag_id, role, content):
     conn.commit()
     conn.close()
 
-def get_conversation_history(tag_id):
+def get_conversation_history(tag_id, limit=30):
+    """
+    获取指定标签的对话历史记录，默认返回最近30条消息（15轮对话）
+    """
     conn = sqlite3.connect('chat_history.db')
     c = conn.cursor()
-    c.execute('SELECT role, content FROM messages WHERE tag_id = ? ORDER BY created_at',
-              (tag_id,))
+    
+    c.execute('''
+        SELECT role, content 
+        FROM messages 
+        WHERE tag_id = ? 
+        ORDER BY created_at DESC 
+        LIMIT ?
+    ''', (tag_id, limit))
+    
     messages = c.fetchall()
     conn.close()
-    return [{"role": role, "content": content} for role, content in messages]
+    
+    # 因为我们是倒序获取的，需要反转顺序
+    messages.reverse()
+    
+    return [{"role": msg[0], "content": msg[1]} for msg in messages]
 
 def delete_tag(tag_id):
     conn = sqlite3.connect('chat_history.db')

@@ -18,4 +18,71 @@
         -ms-overflow-style: none;
         scrollbar-width: none;
     }
+}
+
+/* Markdown 样式 */
+.markdown-body {
+    @apply text-gray-800 leading-relaxed;
+}
+
+.markdown-body h1 {
+    @apply text-2xl font-bold mt-6 mb-4;
+}
+
+.markdown-body h2 {
+    @apply text-xl font-bold mt-5 mb-3;
+}
+
+.markdown-body h3 {
+    @apply text-lg font-bold mt-4 mb-2;
+}
+
+.markdown-body p {
+    @apply my-3;
+}
+
+.markdown-body ul {
+    @apply list-disc list-inside my-3;
+}
+
+.markdown-body ol {
+    @apply list-decimal list-inside my-3;
+}
+
+.markdown-body li {
+    @apply my-1;
+}
+
+.markdown-body code {
+    @apply font-mono bg-gray-100 px-1 py-0.5 rounded text-sm;
+}
+
+.markdown-body pre {
+    @apply bg-gray-100 p-4 rounded-lg my-4 overflow-x-auto;
+}
+
+.markdown-body pre code {
+    @apply bg-transparent p-0;
+}
+
+.markdown-body blockquote {
+    @apply border-l-4 border-gray-300 pl-4 my-4 italic;
+}
+
+.markdown-body table {
+    @apply w-full border-collapse my-4;
+}
+
+.markdown-body th,
+.markdown-body td {
+    @apply border border-gray-300 px-4 py-2;
+}
+
+.markdown-body th {
+    @apply bg-gray-100;
+}
+
+/* 用户消息中的文本保持换行 */
+.user-message {
+    white-space: pre-wrap;
 } 

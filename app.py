@@ -35,10 +35,10 @@ def chat():
     try:
         message = request.json.get('message', '')
         tag_id = request.json.get('tag_id')
-        model_key = request.json.get('model', 'gpt4o')
+        model_key = request.json.get('model', 'gpt-4o')
         
         # 获取模型配置
-        model_config = config['models'].get(model_key, config['models']['gpt4o'])
+        model_config = config['models'].get(model_key, config['models']['gpt-4o'])
         
         # 使用当前的API key
         api_key = db.get_api_key()
@@ -145,10 +145,10 @@ def chat_stream():
     try:
         message = request.args.get('message', '')
         tag_id = request.args.get('tag_id')
-        model_key = request.args.get('model', 'gpt4o')
+        model_key = request.args.get('model', 'gpt-4o')
         
         # 获取模型配置
-        model_config = config['models'].get(model_key, config['models']['gpt4o'])
+        model_config = config['models'].get(model_key, config['models']['gpt-4o'])
         
         # 使用当前的API key
         api_key = db.get_api_key()
