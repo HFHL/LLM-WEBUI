@@ -4,11 +4,27 @@
     <title>AI Chat Assistant</title>
     <link href="{{ url_for('static', filename='css/output.css') }}" rel="stylesheet">
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/json.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/2.0.11/clipboard.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', (event) => {
+            hljs.configure({
+                languages: ['python', 'javascript', 'bash', 'json'],
+                ignoreUnescapedHTML: true
+            });
+        });
+    </script>
 </head>
 <body class="bg-gray-50">
     <div class="h-screen flex">
         <!-- 侧边栏 -->
-        <div class="w-80 bg-gray-50 border-r shadow-lg transition-all duration-300 ease-in-out">
+        <div class="w-96 bg-gray-50 border-r shadow-lg transition-all duration-300 ease-in-out">
             <!-- 顶部Logo区域 -->
             <div class="p-6 bg-white border-b shadow-sm">
                 <div class="text-2xl font-semibold bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
@@ -127,12 +143,12 @@
 
             <!-- 聊天内容区域 -->
             <div class="flex-1 overflow-y-auto px-4 py-6" id="chat-container">
-                <div class="max-w-3xl mx-auto space-y-6"></div>
+                <div class="max-w-5xl mx-auto space-y-6"></div>
             </div>
 
             <!-- 输入区域 -->
             <div class="p-4 bg-gray-50">
-                <div class="max-w-3xl mx-auto">
+                <div class="max-w-5xl mx-auto">
                     <div class="relative flex items-center bg-white p-2 rounded-xl shadow-sm">
                         <input type="text" 
                                id="message-input"
@@ -159,21 +175,70 @@
         function addMessage(message, isUser) {
             const chatContainer = document.querySelector('#chat-container > div');
             const messageDiv = document.createElement('div');
-            messageDiv.className = `flex ${isUser ? 'justify-end' : 'justify-start'}`;
+            messageDiv.className = `flex ${isUser ? 'justify-end mr-4' : 'justify-start ml-4'}`;
             
             const innerDiv = document.createElement('div');
-            innerDiv.className = `max-w-[80%] p-4 rounded-2xl ${
+            innerDiv.className = `relative max-w-[90%] p-4 rounded-2xl ${
                 isUser 
-                ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-tr-none' 
-                : 'bg-white shadow-sm text-gray-700 rounded-tl-none'
-            } transform transition-all duration-300 hover:scale-[1.02]`;
+                ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-tr-none ml-auto' 
+                : 'bg-white shadow-sm text-gray-700 rounded-tl-none mr-auto'
+            } transform transition-all duration-300 hover:scale-[1.02] markdown-body`;
             
-            if (message.startsWith('<img')) {
-                innerDiv.innerHTML = message;
+            // 添加消息内容的容器
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'pr-6'; // 为复制按钮留出空间
+            
+            if (isUser) {
+                contentDiv.textContent = message;
             } else {
-                innerDiv.textContent = message;
+                contentDiv.innerHTML = marked.parse(message, {
+                    breaks: true,
+                    gfm: true,
+                });
+                
+                contentDiv.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
             }
             
+            innerDiv.appendChild(contentDiv);
+            
+            // 添加复制按钮
+            const copyButton = document.createElement('button');
+            copyButton.className = `absolute bottom-2 right-2 p-1 rounded-full 
+                ${isUser ? 'text-white/70 hover:text-white' : 'text-gray-400 hover:text-gray-600'} 
+                transition-colors duration-200`;
+            copyButton.innerHTML = `
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                        d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path>
+                </svg>
+            `;
+            
+            // 添加复制功能
+            copyButton.addEventListener('click', async () => {
+                try {
+                    await navigator.clipboard.writeText(message);
+                    
+                    // 显示复制成功的临时提示
+                    const tooltip = document.createElement('div');
+                    tooltip.className = `absolute bottom-8 right-0 px-2 py-1 text-xs rounded bg-gray-800 text-white 
+                        opacity-0 transition-opacity duration-200`;
+                    tooltip.textContent = '已复制';
+                    innerDiv.appendChild(tooltip);
+                    
+                    // 显示动画
+                    setTimeout(() => tooltip.classList.add('opacity-100'), 0);
+                    setTimeout(() => {
+                        tooltip.classList.remove('opacity-100');
+                        setTimeout(() => tooltip.remove(), 200);
+                    }, 1000);
+                } catch (err) {
+                    console.error('复制失败:', err);
+                }
+            });
+            
+            innerDiv.appendChild(copyButton);
             messageDiv.appendChild(innerDiv);
             chatContainer.appendChild(messageDiv);
             chatContainer.parentElement.scrollTop = chatContainer.parentElement.scrollHeight;
@@ -342,13 +407,13 @@
                     // 创建消息容器
                     const chatContainer = document.querySelector('#chat-container > div');
                     const messageDiv = document.createElement('div');
-                    messageDiv.className = 'flex justify-start';
+                    messageDiv.className = 'flex justify-start ml-4';
                     const innerDiv = document.createElement('div');
-                    innerDiv.className = 'max-w-[80%] p-4 rounded-2xl bg-white shadow-sm text-gray-700 rounded-tl-none transform transition-all duration-300 hover:scale-[1.02]';
+                    innerDiv.className = 'relative max-w-[90%] p-4 rounded-2xl bg-white shadow-sm text-gray-700 rounded-tl-none mr-auto transform transition-all duration-300 hover:scale-[1.02]';
                     messageDiv.appendChild(innerDiv);
                     chatContainer.appendChild(messageDiv);
                     
-                    // ���立 SSE 连接
+                    // 立 SSE 连接
                     const eventSource = new EventSource(`/chat/stream?message=${encodeURIComponent(message)}&tag_id=${currentTagId}&model=${selectedModel}`);
                     
                     let assistantMessage = '';
@@ -356,6 +421,15 @@
                     eventSource.onmessage = function(event) {
                         if (event.data === '[DONE]') {
                             eventSource.close();
+                            // 完成后重新渲染整个消息，以确保 Markdown 格式正确
+                            innerDiv.innerHTML = marked.parse(assistantMessage, {
+                                breaks: true,
+                                gfm: true
+                            });
+                            // 应用代码高亮
+                            innerDiv.querySelectorAll('pre code').forEach((block) => {
+                                hljs.highlightElement(block);
+                            });
                             return;
                         }
                         
@@ -375,6 +449,7 @@
                         } catch (e) {
                             // 不是 JSON，是普通的消息内容
                             assistantMessage += event.data;
+                            // 实时显示原始文本，等待完成后再渲染 Markdown
                             innerDiv.textContent = assistantMessage;
                             chatContainer.parentElement.scrollTop = chatContainer.parentElement.scrollHeight;
                         }
