@@ -62,7 +62,7 @@
             </div>
         </div>
 
-        <!-- 主聊区域 -->
+        <!-- 主聊域 -->
         <div class="flex-1 flex flex-col bg-gray-50">
             <!-- 顶部统计栏 -->
             <div class="bg-white p-4 shadow-sm">
@@ -196,7 +196,8 @@
             
             newItem.innerHTML = `
                 <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center text-blue-600">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-100 to-purple-100 
+                                      flex items-center justify-center text-blue-600">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
                                   d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-4l-4 4z"></path>
@@ -205,10 +206,10 @@
                     <span class="text-gray-700">${data.name}</span>
                 </div>
                 <button onclick="deleteTag(${data.tag_id}, event)" 
-                        class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-gray-400 hover:text-red-500">
+                        class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 
+                                       text-gray-400 hover:text-red-500">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                     </svg>
                 </button>
             `;
@@ -281,70 +282,113 @@
             const message = input.value.trim();
             
             if (message) {
-                // 如果没有当前对话，自动创建一个
-                if (!currentTagId) {
-                    const response = await fetch('/create_tag', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({})
-                    });
-                    const data = await response.json();
-                    currentTagId = data.tag_id;
-                    
-                    // 添加新对话到历史列表
-                    const historyList = document.getElementById('tags-list');
-                    const newItem = document.createElement('div');
-                    newItem.setAttribute('data-tag-id', data.tag_id);
-                    newItem.setAttribute('onclick', `switchTag(${data.tag_id})`);
-                    newItem.className = 'group flex items-center justify-between p-3 my-2 rounded-xl hover:bg-gray-50 transition-all duration-200 cursor-pointer';
-                    
-                    newItem.innerHTML = `
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center text-blue-600">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                          d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-4l-4 4z"></path>
-                                </svg>
+                try {
+                    // 如果没有当前对话，先创建一个新对话
+                    if (!currentTagId) {
+                        const response = await fetch('/create_tag', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({})
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error('Failed to create new conversation');
+                        }
+                        
+                        const data = await response.json();
+                        currentTagId = data.tag_id;
+                        
+                        // 添加新对话到历史列表
+                        const historyList = document.getElementById('tags-list');
+                        const newItem = document.createElement('div');
+                        newItem.setAttribute('data-tag-id', data.tag_id);
+                        newItem.setAttribute('onclick', `switchTag(${data.tag_id})`);
+                        newItem.className = 'group flex items-center justify-between p-3 my-2 rounded-xl hover:bg-gray-50 transition-all duration-200 cursor-pointer';
+                        
+                        newItem.innerHTML = `
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center text-blue-600">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                              d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-4l-4 4z"></path>
+                                    </svg>
+                                </div>
+                                <span class="text-gray-700">${data.name}</span>
                             </div>
-                            <span class="text-gray-700">${data.name}</span>
-                        </div>
-                        <button onclick="deleteTag(${data.tag_id}, event)" 
-                                class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-gray-400 hover:text-red-500">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                            </svg>
-                        </button>
-                    `;
+                            <button onclick="deleteTag(${data.tag_id}, event)" 
+                                    class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-gray-400 hover:text-red-500">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        `;
+                        
+                        // 将新对话添加到列表开头
+                        if (historyList.firstChild) {
+                            historyList.insertBefore(newItem, historyList.firstChild);
+                        } else {
+                            historyList.appendChild(newItem);
+                        }
+                    }
+
+                    // 显示用户消息
+                    addMessage(message, true);
+                    input.value = '';
+
+                    const modelSelect = document.getElementById('model-select');
+                    const selectedModel = modelSelect.value;
                     
-                    historyList.insertBefore(newItem, historyList.firstChild);
-                }
-
-                addMessage(message, true);
-                input.value = '';
-
-                const modelSelect = document.getElementById('model-select');
-                const selectedModel = modelSelect.value;
-                
-                const response = await fetch('/chat', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        message: message,
-                        tag_id: currentTagId,
-                        model: selectedModel
-                    })
-                });
-                const data = await response.json();
-                
-                if (data.error) {
-                    addMessage('错误: ' + data.error, false);
-                } else {
-                    addMessage(data.reply, false);
-                    document.getElementById('current-tokens').textContent = data.tokens_used;
-                    document.getElementById('current-cost').textContent = data.cost;
-                    document.getElementById('total-tokens').textContent = data.total_tokens;
-                    document.getElementById('total-cost').textContent = data.total_cost;
+                    // 创建消息容器
+                    const chatContainer = document.querySelector('#chat-container > div');
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = 'flex justify-start';
+                    const innerDiv = document.createElement('div');
+                    innerDiv.className = 'max-w-[80%] p-4 rounded-2xl bg-white shadow-sm text-gray-700 rounded-tl-none transform transition-all duration-300 hover:scale-[1.02]';
+                    messageDiv.appendChild(innerDiv);
+                    chatContainer.appendChild(messageDiv);
+                    
+                    // ���立 SSE 连接
+                    const eventSource = new EventSource(`/chat/stream?message=${encodeURIComponent(message)}&tag_id=${currentTagId}&model=${selectedModel}`);
+                    
+                    let assistantMessage = '';
+                    
+                    eventSource.onmessage = function(event) {
+                        if (event.data === '[DONE]') {
+                            eventSource.close();
+                            return;
+                        }
+                        
+                        try {
+                            // 检查是否是统计信息
+                            const data = JSON.parse(event.data);
+                            if (data.tokens_used) {
+                                // 更新统计信息
+                                if (document.getElementById('current-tokens')) {
+                                    document.getElementById('current-tokens').textContent = data.tokens_used;
+                                    document.getElementById('current-cost').textContent = data.cost;
+                                    document.getElementById('total-tokens').textContent = data.total_tokens;
+                                    document.getElementById('total-cost').textContent = data.total_cost;
+                                }
+                                return;
+                            }
+                        } catch (e) {
+                            // 不是 JSON，是普通的消息内容
+                            assistantMessage += event.data;
+                            innerDiv.textContent = assistantMessage;
+                            chatContainer.parentElement.scrollTop = chatContainer.parentElement.scrollHeight;
+                        }
+                    };
+                    
+                    eventSource.onerror = function(error) {
+                        console.error('EventSource failed:', error);
+                        eventSource.close();
+                        innerDiv.textContent = '发生错误，请重试';
+                    };
+                    
+                } catch (error) {
+                    console.error('Error:', error);
+                    addMessage('发生错误: ' + error.message, false);
                 }
             }
         }
@@ -372,11 +416,15 @@
             });
         }
 
-        // 页面加载时自动选择第一个对话
+        // 修改页面加载时的行为
         window.onload = function() {
             const firstTag = document.querySelector('[data-tag-id]');
             if (firstTag) {
-                switchTag(firstTag.getAttribute('data-tag-id'));
+                const tagId = firstTag.getAttribute('data-tag-id');
+                currentTagId = tagId;  // 设置当前对话ID
+                switchTag(tagId);
+            } else {
+                currentTagId = null;  // 确保没有对话时设置为 null
             }
         }
     </script>
